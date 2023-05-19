@@ -8,7 +8,7 @@ class MyAPITestCase(TestCase):
 
     def test_my_endpoint(self):
         # Code de test pour votre point d'extrémité
-        url = reverse('')   
+        url = reverse('notion-pages')   
         response = self.client.get(url)
         
         # Assertions pour vérifier la réponse

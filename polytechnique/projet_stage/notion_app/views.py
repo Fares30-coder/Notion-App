@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from .models import Video, ResultatAnalyse
 
 
 def get_notion_pages(request):
@@ -24,7 +25,6 @@ def get_notion_pages(request):
             data = response.json()
 
             # Traiter les données et effectuer les opérations nécessaires
-            # ...
 
             # Retourner une réponse JSON avec les données traitées
             return JsonResponse(data, status=200)
@@ -55,7 +55,6 @@ def update_notion_page(request, page_id):
         data = response.json()
 
         # Traitez les données et effectuez les opérations nécessaires
-        # ...
 
         # Retournez une réponse JSON avec les données traitées
         return JsonResponse(data, status=200)
@@ -79,4 +78,33 @@ class MySecuredView(APIView):
         # Code de traitement pour la vue sécurisée avec une méthode PUT
         return Response(f'Put request processed for id: {pk}.')
 
+
+
+
+def envoyer_video(request):
+    if request.method == 'POST':
+        # Traitement de la vidéo envoyée
+        titre = request.POST['titre']
+        description = request.POST['description']
+        fichier_video = request.FILES['fichier_video']
+        
+        # Enregistrer la vidéo dans la base de données
+        video = Video(titre=titre, description=description, fichier_video=fichier_video)
+        video.save()
+        
+        # Appel à l'API Whisper pour l'analyse vidéo
+        # ...
+        
+        # Enregistrer les résultats d'analyse dans la base de données
+        resultat = ResultatAnalyse(video_liee=video, resultats='Résultats d\'analyse')
+        resultat.save()
+        
+        return render(request, 'video_envoyee.html')
+    else:
+        return render(request, 'envoyer_video.html')
+
+def recuperer_resultats(request, video_id):
+    video = Video.objects.get(pk=video_id)
+    resultat = ResultatAnalyse.objects.get(video_liee=video)
+    return render(request, 'resultats.html', {'video': video, 'resultat': resultat})
 # Create your views here.
