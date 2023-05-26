@@ -1,0 +1,23 @@
+<!-- template_notion_integration.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Notion Integration</title>
+</head>
+<body>
+    <h1>Notion Integration</h1>
+
+    <!-- Affichez ici les données récupérées depuis Notion -->
+    {% if notion_data %}
+        <ul>
+        {% for data in notion_data %}
+            <li>{{ data }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Aucune donnée récupérée depuis Notion.</p>
+    {% endif %}
+</body>
+</html>
