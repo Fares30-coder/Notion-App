@@ -1,39 +1,70 @@
-from django.shortcuts import render
+
 import requests
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Video, ResultatAnalyse
+from django.shortcuts import render
+from notion.client import NotionClient
+from notion.block import TextBlock
 
 
-def get_notion_pages(request):
-    # Récupérer le header Authorization
-    auth_header = request.headers.get('Authorization')
+def create_entity(request):
+    # Récupérer le token d'intégration Notion
+    token = 'secret_1VBniOlc5XOn1rdhIIfnd3mcTi9UAjBnRlIGVESiamI'
+    
+    # Créer une instance de NotionClient
+    client = NotionClient(token_v2=token)
 
-    # Vérifier si l'en-tête Authorization est présent et s'il commence par "Bearer"
-    if auth_header and auth_header.startswith('Bearer '):
-        # Extraire le token
-        token = auth_header[7:]
+    # Récupérer la page parente
+    parent_page_url = 'https://www.notion.so/test-629eac2d9b424cd8bb11d7325f018e8e?pvs=4'
+    parent_page = client.get_block(parent_page_url)
 
-        # Effectuer la requête GET à l'API de Notion avec le token
-        response = requests.get("https://api.notion.com/v1/pages", headers={"Authorization": f"Bearer {token}"})
+    # Créer une nouvelle page enfant
+    new_page = parent_page.children.add_new(TextBlock, title='Nouvelle page')
 
-        # Vérifier le statut de la réponse
-        if response.status_code == 200:
-            # Récupérer les données de la réponse au format JSON
-            data = response.json()
+    # Récupérer les données de la nouvelle page
+    new_page_data = {
+        'title': new_page.title,
+        'url': new_page.get_browseable_url(),
+    }
 
-            # Traiter les données et effectuer les opérations nécessaires
+    return render(request, 'template_notion.html', {'new_page_data': new_page_data})
 
-            # Retourner une réponse JSON avec les données traitées
-            return JsonResponse(data, status=200)
-        else:
-            # En cas d'erreur, retourner une réponse d'erreur appropriée
-            return JsonResponse({"message": "Une erreur s'est produite lors de la récupération des pages."}, status=500)
+
+def home(request):
+    return render(request, 'home.html')
+
+
+def notion_integration(request):
+    # Endpoint de l'API Notion pour récupérer une page
+    notion_url = 'https://api.notion.com/v1/pages/{page_id}'
+
+    # ID de la page Notion que vous souhaitez récupérer
+    page_id = '1e9ea5d2-82c8-4d3b-8c79-490ca5206bd0'
+
+    # Header d'autorisation pour l'API Notion
+    headers = {
+        'Authorization': 'Bearer secret_1VBniOlc5XOn1rdhIIfnd3mcTi9UAjBnRlIGVESiamI',
+        'Content-Type': 'application/json',
+        'Notion-Version': '2021-08-16'  
+    }
+
+    # Effectuer la requête GET pour récupérer la page
+    response = requests.get(notion_url.format(page_id=page_id), headers=headers)
+
+    # Traiter la réponse de l'API Notion
+    if response.status_code == 200:
+        page_data = response.json()  # Données de la page récupérée
+        # Effectuez ici les opérations souhaitées sur les données de la page
+
+        # Renvoyer les résultats dans le rendu de votre choix
+        return render(request, 'template_notion.html', {'page_data': page_data})
     else:
-        # Retourner une réponse d'erreur si le header Authorization est manquant ou mal formaté
-        return JsonResponse({"message": "Autorisation invalide"}, status=401)
+        # Gérer les erreurs éventuelles et fournir une réponse appropriée
+        error_message = response.json().get('message', 'Une erreur s est produite.')
+        return render(request, 'error.html', {'error_message': error_message})
 
 
 
@@ -80,11 +111,11 @@ class MySecuredView(APIView):
 
 
 
-
+""""
 def envoyer_video(request):
     if request.method == 'POST':
         # Traitement de la vidéo envoyée
-        titre = request.POST['titre']
+         titre = request.POST['titre']
         description = request.POST['description']
         fichier_video = request.FILES['fichier_video']
         
@@ -108,3 +139,118 @@ def recuperer_resultats(request, video_id):
     resultat = ResultatAnalyse.objects.get(video_liee=video)
     return render(request, 'resultats.html', {'video': video, 'resultat': resultat})
 # Create your views here.
+"""
+
+"""def get_models_view(request):
+    # Effectuer la requête GET pour obtenir les modèles
+    headers = {
+        'Authorization': 'Bearer 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',
+    }
+    response = requests.get('https://api.openai.com/v1/models', headers=headers)
+    data = response.json()
+
+    processed_data = []
+    for model_data in data['models']:
+        model = {
+            'name': model_data['name'],
+            'description': model_data['description'],
+            # Autres informations pertinentes
+        }
+        processed_data.append(model)
+
+
+    # Répondre avec les données traitées sous forme de réponse JSON
+    return JsonResponse({'models': processed_data})
+"""
+
+def get_models_view(request):
+    headers = {
+        'Authorization': 'Bearer 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',
+    }
+    response = requests.get('https://api.openai.com/v1/models', headers=headers)
+    data = response.json()
+
+   # print(data)  # Print the response data for debugging purposes
+
+    if 'models' in data:
+        processed_data = []
+        for model_data in data['models']:
+            model = {
+                'name': model_data['name'],
+                'description': model_data['description'],
+                # Autres informations pertinentes
+            }
+            processed_data.append(model)
+
+        # Répondre avec les données traitées sous forme de réponse JSON
+        return JsonResponse({'models': processed_data})
+    else:
+        # Handle the case when 'models' key is not present in the response
+        error_message = "Error: 'models' key is not present in the API response"
+        return JsonResponse({'error': error_message}, status=500)
+
+
+
+def audio_transcription_view(request):
+    if request.method == 'POST':
+        # Récupérer le fichier audio envoyé dans la requête
+        audio_file = request.FILES.get('audio_file')
+
+        # Effectuer la requête POST pour transcrire l'audio
+        headers = {
+            'Authorization': 'Bearer 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',
+        }
+        files = {'file': audio_file}
+        response = requests.post('https://api.openai.com/v1/audio/transcriptions', headers=headers, files=files)
+        data = response.json()
+
+        # Traiter les données de réponse
+        if 'transcription' in data:
+            transcription = data['transcription']
+            # Faites quelque chose avec la transcription, comme l'afficher ou la sauvegarder
+
+            # Retourner une réponse JSON avec la transcription
+            return JsonResponse({'transcription': transcription})
+        else:
+            # Gérer les cas d'erreur si la transcription n'est pas présente dans la réponse
+            return JsonResponse({'error': 'La transcription n\'est pas disponible'}, status=500)
+
+    else:
+        # Gérer le cas où la méthode HTTP n'est pas POST
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+
+
+def transcribe_video(video_url):
+    # Définir l'URL de l'API Whisper pour la transcription vidéo
+    url = 'https://api.openai.com/v1/audio/transcriptions'
+   
+    # Définir les paramètres de la requête
+    params = {
+        'model': 'whisper-1.0',
+        'audio': video_url,
+    }
+
+    # Ajouter l'en-tête d'authentification avec votre clé API
+    headers = {
+        'Authorization': f'Bearer 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',
+    # Effectuer la requête POST à l'API Whisper
+        'Content-Type': 'application/json',
+    }
+
+    response = requests.post(url, json=params, headers=headers)
+
+    # Obtenir la réponse JSON
+    data = response.json()
+    #transcription = transcribe_video('React Native - How to make an image button in react-native .mp4')
+    # Traiter la réponse
+    if response.status_code == 200:
+        # La requête a réussi
+        transcription = data['transcription']
+        return transcription
+    else:
+        # La requête a échoué
+        error_message = data['error']
+        return f"Erreur: {error_message}"
+    
+
